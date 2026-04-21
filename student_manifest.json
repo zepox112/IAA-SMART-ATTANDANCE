@@ -1,0 +1,13 @@
+{
+    "name": "IAA Student Attendance",
+    "short_name": "IAA Student",
+    "start_url": "student.html",
+    "display": "standalone",
+    "icons": [
+        {
+            "src": "logo.jpg",
+            "sizes": "512x512",
+            "type": "image/jpeg"
+        }
+    ]
+}
