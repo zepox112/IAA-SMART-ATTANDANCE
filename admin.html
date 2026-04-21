@@ -6,6 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/jpeg" href="logo.jpg">
     <link rel="apple-touch-icon" href="logo.jpg">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#061a3d">
+    <link rel="apple-touch-icon" href="logo.jpg">
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js');
+            });
+        }
+    </script>
     <title>IAA Smart Attendance Portal</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
@@ -149,7 +160,7 @@
         <img src="logo.jpg" alt="IAA Logo" class="logo">
 
         <div id="landingView">
-            <h2>IAA Smart  Attandance Portal</h2>
+            <h2>IAA Smart Attandance Portal</h2>
             <button class="btn" onclick="switchView('registerView')">Tengeneza Akaunti</button>
             <button class="btn" style="background:transparent; border:1px solid var(--primary-blue);"
                 onclick="switchView('loginView')">Ingia</button>
