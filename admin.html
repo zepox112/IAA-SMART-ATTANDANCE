@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="sw">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/jpeg" href="logo.jpg">
+    <link rel="apple-touch-icon" href="logo.jpg">
+    <title>IAA Smart Attendance Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --glass: rgba(255, 255, 255, 0.1);
+            --border: rgba(255, 255, 255, 0.2);
+            --primary-blue: #00d2ff;
+            --deep-blue: #061a3d;
+            --accent-red: #ff4d4d;
+        }
+
+        body {
+            background: linear-gradient(rgba(6, 26, 61, 0.9), rgba(30, 60, 114, 0.8)),
+                url('https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=1920&q=80');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            font-family: 'Poppins', sans-serif;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background: var(--glass);
+            backdrop-filter: blur(35px) saturate(180%);
+            -webkit-backdrop-filter: blur(35px);
+            border: 1px solid var(--border);
+            padding: 30px;
+            border-radius: 28px;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4);
+            width: 100%;
+            max-width: 480px;
+            text-align: center;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin-bottom: 10px;
+            border: 2px solid var(--primary-blue);
+            background: white;
+        }
+
+        h2,
+        h3 {
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border);
+            color: white;
+            border-radius: 12px;
+            outline: none;
+            box-sizing: border-box;
+        }
+
+        .btn {
+            background: linear-gradient(90deg, #1e3c72 0%, #00d2ff 100%);
+            border: none;
+            padding: 14px;
+            width: 100%;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 10px;
+        }
+
+        .btn-red {
+            background: linear-gradient(90deg, #d31027 0%, #ea384d 100%);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .lec-list-header {
+            background: rgba(0, 210, 255, 0.2);
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-size: 12px;
+            text-align: left;
+            border: 1px solid var(--primary-blue);
+        }
+
+        .item-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            text-align: left;
+            border-left: 4px solid var(--primary-blue);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .token-display {
+            font-size: 40px;
+            font-weight: bold;
+            color: var(--primary-blue);
+            margin: 15px 0;
+        }
+
+        .analysis-box {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 15px;
+            text-align: left;
+            margin-top: 10px;
+        }
+
+        .day-stat {
+            font-size: 13px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 5px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <img src="logo.jpg" alt="IAA Logo" class="logo">
+
+        <div id="landingView">
+            <h2>IAA Smart  Attandance Portal</h2>
+            <button class="btn" onclick="switchView('registerView')">Tengeneza Akaunti</button>
+            <button class="btn" style="background:transparent; border:1px solid var(--primary-blue);"
+                onclick="switchView('loginView')">Ingia</button>
+        </div>
+
+        <div id="registerView" class="hidden">
+            <h3>Jisajili</h3>
+            <input type="text" id="regName" placeholder="Majina Matatu">
+            <input type="number" id="regPhone" placeholder="Namba ya Simu">
+            <select id="regRole" onchange="toggleRegFields()">
+                <option value="CR">Mimi ni CR</option>
+                <option value="Lecturer">Mimi ni Mhadhiri</option>
+            </select>
+            <div id="crExtraFields">
+                <input type="text" id="regCourse" placeholder="Kozi (mf. IT Diploma)">
+                <input type="text" id="regLevel" placeholder="Level (mf. NTA 5)">
+                <input type="text" id="regYear" placeholder="Mwaka (mf. 2025/26)">
+            </div>
+            <div id="lecExtraFields" class="hidden">
+                <input type="text" id="regSubject" placeholder="Somo Lako Kuu">
+            </div>
+            <button class="btn" id="regBtn" onclick="handleRegister()">Kamilisha</button>
+            <button class="btn btn-red" onclick="switchView('landingView')">Rudi</button>
+        </div>
+
+        <div id="loginView" class="hidden">
+            <h3>Ingia</h3>
+            <input type="text" id="logName" placeholder="Jina Lako Kamili">
+            <button class="btn" onclick="handleLogin()">Ingia Sasa</button>
+        </div>
+
+        <div id="crDashboard" class="hidden">
+            <div class="lec-list-header">
+                <strong>Ma-Lecturer Waliopo:</strong><br>
+                <div id="lecContactsDisplay">Inapakia...</div>
+            </div>
+            <h3>CR Panel: <span id="crCourseName"></span></h3>
+            <div id="studentManager">
+                <input type="text" id="newStdName" placeholder="Jina la Mwanafunzi">
+                <button class="btn" onclick="addStudent()">Ongeza Mwanafunzi</button>
+            </div>
+            <div id="studentListDisplay" style="margin-top:20px;">Inapakia wanafunzi...</div>
+            <hr>
+            <button class="btn" onclick="switchView('tokenView')">Tengeneza Kodi (Dakika 1)</button>
+            <button class="btn btn-red" onclick="logout()">Logout</button>
+        </div>
+
+        <div id="studentDetailView" class="hidden">
+            <h3 id="detStdName">...</h3>
+            <div class="analysis-box">
+                <strong>Vipindi Siku 5 Zilizopita:</strong>
+                <div id="fiveDayStat"></div>
+            </div>
+            <div class="analysis-box" style="margin-top:15px;">
+                <strong>Muhtasari wa Mwezi:</strong>
+                <div id="monthlyStat"></div>
+            </div>
+            <button class="btn" onclick="switchView('crDashboard')">Rudi</button>
+        </div>
+
+        <div id="lecDashboard" class="hidden">
+            <h3>Mhadhiri Dashboard</h3>
+            <select id="filterLevel" onchange="loadLecCourses()">
+                <option>Inapakia Level...</option>
+            </select>
+            <select id="filterCourse" onchange="loadLecStudents()">
+                <option>Chagua Kozi</option>
+            </select>
+            <div id="classDataDisplay" style="margin-top:20px;"></div>
+            <button class="btn btn-red" onclick="logout()">Logout</button>
+        </div>
+
+        <div id="tokenView" class="hidden">
+            <h3>Attendance Control</h3>
+            <input type="text" id="sessionSubject" placeholder="Jina la Somo">
+            <div class="token-display" id="tokenBox">----</div>
+            <p id="timer">Muda: 60s</p>
+            <button class="btn" onclick="generateToken()">Anza Mahudhurio</button>
+            <button class="btn btn-red" onclick="switchView('crDashboard')">Funga</button>
+        </div>
+    </div>
+
+    <script>
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwcy0Og0gp6fGrxUc_9zc64wytJ8dqFr1PRIcsFSylFu34zLCNm2bI_FZuP9Rkh7DStOA/exec"; // WEKA LINK YAKO YA GOOGLE APPS SCRIPT HAPA
+
+        let currentUser = null;
+        let all_users = [];
+        let all_students = [];
+        let all_attendance = [];
+
+        async function fetchAllData() {
+            try {
+                const resUsers = await fetch(`${SCRIPT_URL}?action=getUsers`);
+                all_users = await resUsers.json();
+                const resStudents = await fetch(`${SCRIPT_URL}?action=getStudents`);
+                all_students = await resStudents.json();
+                const resAttendance = await fetch(`${SCRIPT_URL}?action=getAttendance`);
+                all_attendance = await resAttendance.json();
+            } catch (e) { console.error("Kushindwa kupata data", e); }
+        }
+
+        function switchView(id) {
+            document.querySelectorAll('.container > div').forEach(v => v.classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+            fetchAllData().then(() => {
+                if (id === 'crDashboard') renderCR();
+                if (id === 'lecDashboard') renderLec();
+            });
+        }
+
+        function toggleRegFields() {
+            const isLec = document.getElementById('regRole').value === 'Lecturer';
+            document.getElementById('crExtraFields').classList.toggle('hidden', isLec);
+            document.getElementById('lecExtraFields').classList.toggle('hidden', !isLec);
+        }
+
+        async function handleRegister() {
+            const btn = document.getElementById('regBtn');
+            btn.innerText = "Inatuma...";
+            const data = {
+                name: document.getElementById('regName').value,
+                phone: document.getElementById('regPhone').value,
+                role: document.getElementById('regRole').value,
+                course: document.getElementById('regCourse').value || "N/A",
+                level: document.getElementById('regLevel').value || "N/A",
+                subject: document.getElementById('regSubject').value || "N/A",
+                year: document.getElementById('regYear').value || "N/A"
+            };
+
+            await fetch(`${SCRIPT_URL}?action=registerUser`, {
+                method: "POST",
+                body: JSON.stringify(data)
+            });
+            alert("Usajili Umekamilika!");
+            switchView('loginView');
+            btn.innerText = "Kamilisha";
+        }
+
+        function handleLogin() {
+            const name = document.getElementById('logName').value;
+            currentUser = all_users.find(u => u[0] === name);
+            if (currentUser) {
+                const role = currentUser[2];
+                role === 'CR' ? switchView('crDashboard') : switchView('lecDashboard');
+            } else { alert("Akaunti haipo! Hakikisha umejisajili."); }
+        }
+
+        function renderCR() {
+            document.getElementById('crCourseName').innerText = currentUser[3];
+            const lecs = all_users.filter(u => u[2] === 'Lecturer');
+            document.getElementById('lecContactsDisplay').innerHTML = lecs.map(l => `• ${l[0]} (${l[1]}) - ${l[5]}`).join('<br>');
+
+            const myStudents = all_students.filter(s => s[1] === currentUser[3]);
+            document.getElementById('studentListDisplay').innerHTML = myStudents.map(s => `
+                <div class="item-card" onclick="openAnalysis('${s[0]}')">
+                    <span>${s[0]}</span>
+                    <small>Angalia Analytics</small>
+                </div>`).join('');
+        }
+
+        async function addStudent() {
+            const name = document.getElementById('newStdName').value;
+            if (!name) return;
+            await fetch(`${SCRIPT_URL}?action=addStudent`, {
+                method: "POST",
+                body: JSON.stringify({ name, course: currentUser[3], crName: currentUser[0] })
+            });
+            document.getElementById('newStdName').value = '';
+            switchView('crDashboard');
+        }
+
+        function openAnalysis(name) {
+            switchView('studentDetailView');
+            document.getElementById('detStdName').innerText = name;
+            const days = ["Jumatatu", "Jumanne", "Jumatano", "Alhamisi", "Ijumaa"];
+            document.getElementById('fiveDayStat').innerHTML = days.map(d => `<div class="day-stat"><span>${d}</span> <span>${Math.floor(Math.random() * 4)} Vipindi</span></div>`).join('');
+            const months = ["Machi", "Aprili", "Mei"];
+            document.getElementById('monthlyStat').innerHTML = months.map(m => `<div class="day-stat"><span>${m}</span> <span>${10 + Math.floor(Math.random() * 15)} Vipindi</span></div>`).join('');
+        }
+
+        function renderLec() {
+            const levels = [...new Set(all_users.filter(u => u[2] === 'CR').map(u => u[4]))];
+            document.getElementById('filterLevel').innerHTML = '<option>Chagua Level</option>' + levels.map(l => `<option value="${l}">${l}</option>`).join('');
+        }
+
+        function loadLecCourses() {
+            const lvl = document.getElementById('filterLevel').value;
+            const courses = all_users.filter(u => u[4] === lvl && u[2] === 'CR').map(u => u[3]);
+            document.getElementById('filterCourse').innerHTML = '<option>Chagua Kozi</option>' + courses.map(c => `<option value="${c}">${c}</option>`).join('');
+        }
+
+        function loadLecStudents() {
+            const course = document.getElementById('filterCourse').value;
+            const stds = all_students.filter(s => s[1] === course);
+            document.getElementById('classDataDisplay').innerHTML = stds.map(s => `<div class="item-card"><span>${s[0]}</span> <small>Vipindi: ${Math.floor(Math.random() * 25)}</small></div>`).join('');
+        }
+        async function generateToken() {
+            const sub = document.getElementById('sessionSubject').value;
+            if (!sub) return alert("Weka Jina la Somo kwanza!");
+
+            // 1. Tengeneza Token ya herufi 6
+            const token = Math.random().toString(36).substring(2, 8).toUpperCase();
+            document.getElementById('tokenBox').innerText = token;
+
+            // 2. Tuma Token Online ili wanafunzi waweze ku-verify
+            // Hii inaenda kwenye tabu ya 'Active_Tokens'
+            try {
+                await fetch(`${SCRIPT_URL}?action=setActiveToken`, {
+                    method: "POST",
+                    mode: "no-cors", // Muhimu kwa Google Apps Script
+                    body: JSON.stringify({
+                        token: token,
+                        subject: sub,
+                        lecturer: currentUser[0],
+                        course: currentUser[3],
+                        expiresIn: 180 // Sekunde 180 (Dakika 3)
+                    })
+                });
+                console.log("Token imetumwa Online!");
+            } catch (e) {
+                console.error("Token imeshindwa kwenda Online", e);
+            }
+
+            // 3. Timer ya Dakika 3 (180 Seconds)
+            let time = 180;
+            const timerElement = document.getElementById('timer');
+
+            // Futa interval iliyopita kama ipo kuzuia migongano
+            if (window.activeTimer) clearInterval(window.activeTimer);
+
+            window.activeTimer = setInterval(() => {
+                time--;
+
+                // Onyesha muda katika format ya Min:Sec
+                let minutes = Math.floor(time / 60);
+                let seconds = time % 60;
+                timerElement.innerText = `Muda: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+
+                if (time <= 0) {
+                    clearInterval(window.activeTimer);
+                    document.getElementById('tokenBox').innerText = "IMEISHA";
+                    timerElement.innerText = "Kodi imeisha muda wake!";
+
+                    // (Optional) Tuma amri ya kuifuta token Online ikishaisha
+                    fetch(`${SCRIPT_URL}?action=expireToken&token=${token}`);
+                }
+            }, 1000);
+        }
+        // Function ya kufungua uchambuzi wa mwanafunzi kutoka kwenye Sheets
+        async function openAnalysis(stdName) {
+            switchView('studentDetailView');
+            document.getElementById('detStdName').innerText = "Inapakia: " + stdName;
+
+            try {
+                const res = await fetch(`${SCRIPT_URL}?action=getAttendance`);
+                const allAttendance = await res.json();
+
+                // Chuja mahudhurio ya mwanafunzi huyu (Index 0 ni Jina)
+                const myAttendance = allAttendance.filter(row => row[0] === stdName);
+                document.getElementById('detStdName').innerText = stdName;
+
+                // --- SEHEMU YA 1: UCHAMBUZI WA SIKU 5 ZILIZOPITA (Pamoja na Masomo) ---
+                const last5Days = [];
+                for (let i = 0; i < 5; i++) {
+                    let d = new Date();
+                    d.setDate(d.getDate() - i);
+                    let dd = String(d.getDate()).padStart(2, '0');
+                    let mm = String(d.getMonth() + 1).padStart(2, '0');
+                    let yyyy = d.getFullYear();
+                    last5Days.push(`${dd}/${mm}/${yyyy}`);
+                }
+
+                let fiveDayHtml = "";
+                last5Days.forEach(dateStr => {
+                    // Pata vipindi vyote vya tarehe hii (Index 3 ni Tarehe)
+                    const sessionsToday = myAttendance.filter(a => a[3] === dateStr);
+                    const count = sessionsToday.length;
+
+                    // Pata orodha ya majina ya masomo (Index 1 ni Somo)
+                    // Tunatumia Set ili kuzuia kurudia somo kama mwanafunzi aliingia vipindi viwili vya somo moja
+                    const subjects = [...new Set(sessionsToday.map(a => a[1]))].join(', ');
+
+                    fiveDayHtml += `
+            <div class="day-stat" style="flex-direction: column; align-items: flex-start; height: auto; padding: 10px 0;">
+                <div style="display: flex; justify-content: space-between; width: 100%;">
+                    <strong style="color: #eee;">${dateStr}</strong> 
+                    <span style="color: ${count > 0 ? '#00d2ff' : '#ff4d4d'}; font-weight: bold;">
+                        ${count} Vipindi
+                    </span>
+                </div>
+                ${count > 0 ? `<small style="color: rgba(255,255,255,0.6); margin-top: 5px;">Masomo: ${subjects}</small>` : ''}
+            </div>`;
+                });
+                document.getElementById('fiveDayStat').innerHTML = fiveDayHtml;
+
+                // --- SEHEMU YA 2: UCHAMBUZI WA KILA MWEZI ---
+                const monthlyData = {};
+                myAttendance.forEach(a => {
+                    const monthName = a[6]; // Column G (Index 6) ina jina la mwezi
+                    if (monthName) {
+                        monthlyData[monthName] = (monthlyData[monthName] || 0) + 1;
+                    }
+                });
+
+                let monthlyHtml = "";
+                if (Object.keys(monthlyData).length === 0) {
+                    monthlyHtml = "<div class='day-stat'>Bado hajarekodiwa mwezi wowote</div>";
+                } else {
+                    for (const [month, total] of Object.entries(monthlyData)) {
+                        monthlyHtml += `
+                <div class="day-stat">
+                    <span>${month}</span> 
+                    <strong style="color:#00d2ff">${total} Vipindi</strong>
+                </div>`;
+                    }
+                }
+                document.getElementById('monthlyStat').innerHTML = monthlyHtml;
+
+            } catch (e) {
+                console.error("Error fetching analysis:", e);
+                document.getElementById('detStdName').innerText = "Hitilafu kupakia data!";
+            }
+        }
+
+    </script>
+</body>
+
+</html>
