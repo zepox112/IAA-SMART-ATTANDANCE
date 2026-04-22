@@ -47,21 +47,17 @@
         .lang-container {
             display: flex;
             justify-content: flex-end;
-            /* Inakaa upande wa kulia */
             width: 100%;
             margin-bottom: -10px;
-            /* Inasogeza logo karibu kidogo */
         }
 
         .lang-btn {
             background: rgba(255, 255, 255, 0.05);
-            /* Glass effect */
             backdrop-filter: blur(10px);
             border: 1px solid var(--border);
             color: white;
             padding: 6px 12px;
             border-radius: 20px;
-            /* Round shape nzuri */
             font-size: 11px;
             font-weight: 500;
             cursor: pointer;
@@ -224,6 +220,11 @@
                 <input type="text" id="regCourse" data-key="phCourse" placeholder="Kozi (mf. IT Diploma)">
                 <input type="text" id="regLevel" data-key="phLevel" placeholder="Level (mf. NTA 5)">
                 <input type="text" id="regYear" data-key="phYear" placeholder="Mwaka (mf. 2025/26)">
+                <select id="regIntake">
+                    <option value="">Chagua Intake</option>
+                    <option value="March">March</option>
+                    <option value="September">September</option>
+                </select>
             </div>
             <div id="lecExtraFields" class="hidden">
                 <input type="text" id="regSubject" data-key="phSubj" placeholder="Somo Lako Kuu">
@@ -251,7 +252,7 @@
             </div>
             <div id="studentListDisplay" style="margin-top:20px;">Inapakia wanafunzi...</div>
             <hr>
-            <button class="btn" onclick="switchView('tokenView')" data-key="genToken">Tengeneza Kodi (Dakika 1)</button>
+            <button class="btn" onclick="switchView('tokenView')" data-key="genToken">Tengeneza Kodi (Dakika 3)</button>
             <button class="btn btn-red" onclick="logout()" data-key="logout">Logout</button>
         </div>
 
@@ -265,18 +266,31 @@
                 <strong data-key="monthly">Muhtasari wa Mwezi:</strong>
                 <div id="monthlyStat"></div>
             </div>
-            <button class="btn" onclick="switchView('crDashboard')" data-key="backBtn">Rudi</button>
+            <button class="btn" onclick="goBackToDashboard()" data-key="backBtn">Rudi</button>
         </div>
 
         <div id="lecDashboard" class="hidden">
             <h3 data-key="lecDash">Mhadhiri Dashboard</h3>
-            <select id="filterLevel" onchange="loadLecCourses()">
-                <option data-key="ldLvl">Inapakia Level...</option>
+            <div class="lec-list-header">Karibu Dr/Mr. <span id="lecNameShow"></span></div>
+            <select id="filterLevel">
+                <option value="">Chagua Level</option>
             </select>
-            <select id="filterCourse" onchange="loadLecStudents()">
-                <option data-key="selCrs">Chagua Kozi</option>
+            <select id="filterYear">
+                <option value="">Mwaka wa Masomo</option>
             </select>
+            <select id="filterIntake">
+                <option value="">Chagua Intake</option>
+                <option value="March">March</option>
+                <option value="September">September</option>
+            </select>
+            <button class="btn" id="findCRBtn" onclick="findRelevantCRs()"
+                style="background: rgba(0, 210, 255, 0.3); border: 1px solid var(--primary-blue);">
+                TAFUTA CRS
+            </button>
+            <div id="crListDisplay" style="margin-top:20px;"></div>
             <div id="classDataDisplay" style="margin-top:20px;"></div>
+            <button class="btn" onclick="switchView('tokenView')" style="background: var(--primary-blue);">Tengeneza
+                Kodi ya Somo</button>
             <button class="btn btn-red" onclick="logout()" data-key="logout">Logout</button>
         </div>
 
@@ -284,371 +298,265 @@
             <h3 data-key="genAtt">Attendance Control</h3>
             <input type="text" id="sessionSubject" data-key="phSomo" placeholder="Jina la Somo">
             <div class="token-display" id="tokenBox">----</div>
-            <p id="timer" data-key="timer">Muda: 60s</p>
+            <p id="timer" data-key="timer">Muda: 3:00</p>
             <button class="btn" onclick="generateToken()" data-key="startAtt">Anza Mahudhurio</button>
-            <button class="btn btn-red" onclick="switchView('crDashboard')" data-key="close">Funga</button>
+            <button class="btn btn-red" onclick="goBackFromToken()">Funga</button>
         </div>
     </div>
-</body>
-<script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwcy0Og0gp6fGrxUc_9zc64wytJ8dqFr1PRIcsFSylFu34zLCNm2bI_FZuP9Rkh7DStOA/exec"; // WEKA LINK YAKO YA GOOGLE APPS SCRIPT HAPA
 
-    let currentUser = null;
-    let all_users = [];
-    let all_students = [];
-    let all_attendance = [];
+    <script>
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwurk9nPOFqPGx9i6REPUQAXnr22XORWOOW0X_k2UlWyR2Op-hDMuTV0nli0QYMTbyiBg/exec";
 
-    async function fetchAllData() {
-        try {
-            const resUsers = await fetch(`${SCRIPT_URL}?action=getUsers`);
-            all_users = await resUsers.json();
-            const resStudents = await fetch(`${SCRIPT_URL}?action=getStudents`);
-            all_students = await resStudents.json();
-            const resAttendance = await fetch(`${SCRIPT_URL}?action=getAttendance`);
-            all_attendance = await resAttendance.json();
-        } catch (e) { console.error("Kushindwa kupata data", e); }
-    }
+        let currentUser = null;
+        let all_users = [];
+        let all_students = [];
+        let all_attendance = [];
+        let selectedCourseForLec = "";
 
-    function switchView(id) {
-        document.querySelectorAll('.container > div').forEach(v => v.classList.add('hidden'));
-        document.getElementById(id).classList.remove('hidden');
-        fetchAllData().then(() => {
-            if (id === 'crDashboard') renderCR();
-            if (id === 'lecDashboard') renderLec();
-        });
-    }
-
-    function toggleRegFields() {
-        const isLec = document.getElementById('regRole').value === 'Lecturer';
-        document.getElementById('crExtraFields').classList.toggle('hidden', isLec);
-        document.getElementById('lecExtraFields').classList.toggle('hidden', !isLec);
-    }
-
-    async function handleRegister() {
-        const btn = document.getElementById('regBtn');
-        btn.innerText = "Inatuma...";
-        const data = {
-            name: document.getElementById('regName').value,
-            phone: document.getElementById('regPhone').value,
-            role: document.getElementById('regRole').value,
-            course: document.getElementById('regCourse').value || "N/A",
-            level: document.getElementById('regLevel').value || "N/A",
-            subject: document.getElementById('regSubject').value || "N/A",
-            year: document.getElementById('regYear').value || "N/A"
-        };
-
-        await fetch(`${SCRIPT_URL}?action=registerUser`, {
-            method: "POST",
-            body: JSON.stringify(data)
-        });
-        alert("Usajili Umekamilika!");
-        switchView('loginView');
-        btn.innerText = "Kamilisha";
-    }
-
-    function handleLogin() {
-        const name = document.getElementById('logName').value;
-        currentUser = all_users.find(u => u[0] === name);
-        if (currentUser) {
-            const role = currentUser[2];
-            role === 'CR' ? switchView('crDashboard') : switchView('lecDashboard');
-        } else { alert("Akaunti haipo! Hakikisha umejisajili."); }
-    }
-
-    function renderCR() {
-        document.getElementById('crCourseName').innerText = currentUser[3];
-        const lecs = all_users.filter(u => u[2] === 'Lecturer');
-        document.getElementById('lecContactsDisplay').innerHTML = lecs.map(l => `• ${l[0]} (${l[1]}) - ${l[5]}`).join('<br>');
-
-        const myStudents = all_students.filter(s => s[1] === currentUser[3]);
-        document.getElementById('studentListDisplay').innerHTML = myStudents.map(s => `
-                <div class="item-card" onclick="openAnalysis('${s[0]}')">
-                    <span>${s[0]}</span>
-                    <small>Angalia Analytics</small>
-                </div>`).join('');
-    }
-
-    async function addStudent() {
-        const name = document.getElementById('newStdName').value;
-        if (!name) return;
-        await fetch(`${SCRIPT_URL}?action=addStudent`, {
-            method: "POST",
-            body: JSON.stringify({ name, course: currentUser[3], crName: currentUser[0] })
-        });
-        document.getElementById('newStdName').value = '';
-        switchView('crDashboard');
-    }
-
-    function openAnalysis(name) {
-        switchView('studentDetailView');
-        document.getElementById('detStdName').innerText = name;
-        const days = ["Jumatatu", "Jumanne", "Jumatano", "Alhamisi", "Ijumaa"];
-        document.getElementById('fiveDayStat').innerHTML = days.map(d => `<div class="day-stat"><span>${d}</span> <span>${Math.floor(Math.random() * 4)} Vipindi</span></div>`).join('');
-        const months = ["Machi", "Aprili", "Mei"];
-        document.getElementById('monthlyStat').innerHTML = months.map(m => `<div class="day-stat"><span>${m}</span> <span>${10 + Math.floor(Math.random() * 15)} Vipindi</span></div>`).join('');
-    }
-
-    function renderLec() {
-        const levels = [...new Set(all_users.filter(u => u[2] === 'CR').map(u => u[4]))];
-        document.getElementById('filterLevel').innerHTML = '<option>Chagua Level</option>' + levels.map(l => `<option value="${l}">${l}</option>`).join('');
-    }
-
-    function loadLecCourses() {
-        const lvl = document.getElementById('filterLevel').value;
-        const courses = all_users.filter(u => u[4] === lvl && u[2] === 'CR').map(u => u[3]);
-        document.getElementById('filterCourse').innerHTML = '<option>Chagua Kozi</option>' + courses.map(c => `<option value="${c}">${c}</option>`).join('');
-    }
-
-    function loadLecStudents() {
-        const course = document.getElementById('filterCourse').value;
-        const stds = all_students.filter(s => s[1] === course);
-        document.getElementById('classDataDisplay').innerHTML = stds.map(s => `<div class="item-card"><span>${s[0]}</span> <small>Vipindi: ${Math.floor(Math.random() * 25)}</small></div>`).join('');
-    }
-    async function generateToken() {
-        const sub = document.getElementById('sessionSubject').value;
-        if (!sub) return alert("Weka Jina la Somo kwanza!");
-
-        // 1. Tengeneza Token ya herufi 6
-        const token = Math.random().toString(36).substring(2, 8).toUpperCase();
-        document.getElementById('tokenBox').innerText = token;
-
-        // 2. Tuma Token Online ili wanafunzi waweze ku-verify
-        // Hii inaenda kwenye tabu ya 'Active_Tokens'
-        try {
-            await fetch(`${SCRIPT_URL}?action=setActiveToken`, {
-                method: "POST",
-                mode: "no-cors", // Muhimu kwa Google Apps Script
-                body: JSON.stringify({
-                    token: token,
-                    subject: sub,
-                    lecturer: currentUser[0],
-                    course: currentUser[3],
-                    expiresIn: 180 // Sekunde 180 (Dakika 3)
-                })
-            });
-            console.log("Token imetumwa Online!");
-        } catch (e) {
-            console.error("Token imeshindwa kwenda Online", e);
+        async function fetchAllData() {
+            try {
+                const [u, s, a] = await Promise.all([
+                    fetch(`${SCRIPT_URL}?action=getUsers`).then(r => r.json()),
+                    fetch(`${SCRIPT_URL}?action=getStudents`).then(r => r.json()),
+                    fetch(`${SCRIPT_URL}?action=getAttendance`).then(r => r.json())
+                ]);
+                all_users = u;
+                all_students = s;
+                all_attendance = a;
+            } catch (e) { console.error("Kushindwa kupata data", e); }
         }
 
-        // 3. Timer ya Dakika 3 (180 Seconds)
-        let time = 180;
-        const timerElement = document.getElementById('timer');
+        function switchView(id) {
+            document.querySelectorAll('.container > div').forEach(v => {
+                if (v.id) v.classList.add('hidden');
+            });
+            document.getElementById(id).classList.remove('hidden');
 
-        // Futa interval iliyopita kama ipo kuzuia migongano
-        if (window.activeTimer) clearInterval(window.activeTimer);
+            fetchAllData().then(() => {
+                if (id === 'crDashboard') renderCR();
+                if (id === 'lecDashboard') renderLec();
+                updateUI();
+            });
+        }
 
-        window.activeTimer = setInterval(() => {
-            time--;
+        function goBackFromToken() {
+            currentUser[2] === 'CR' ? switchView('crDashboard') : switchView('lecDashboard');
+        }
 
-            // Onyesha muda katika format ya Min:Sec
-            let minutes = Math.floor(time / 60);
-            let seconds = time % 60;
-            timerElement.innerText = `Muda: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        function goBackToDashboard() {
+            currentUser[2] === 'CR' ? switchView('crDashboard') : switchView('lecDashboard');
+        }
 
-            if (time <= 0) {
-                clearInterval(window.activeTimer);
-                document.getElementById('tokenBox').innerText = "IMEISHA";
-                timerElement.innerText = "Kodi imeisha muda wake!";
+        function toggleRegFields() {
+            const isLec = document.getElementById('regRole').value === 'Lecturer';
+            document.getElementById('crExtraFields').classList.toggle('hidden', isLec);
+            document.getElementById('lecExtraFields').classList.toggle('hidden', !isLec);
+        }
 
-                // (Optional) Tuma amri ya kuifuta token Online ikishaisha
-                fetch(`${SCRIPT_URL}?action=expireToken&token=${token}`);
+        async function handleRegister() {
+            const btn = document.getElementById('regBtn');
+            btn.innerText = "Inatuma...";
+            const data = {
+                name: document.getElementById('regName').value,
+                phone: document.getElementById('regPhone').value,
+                role: document.getElementById('regRole').value,
+                course: document.getElementById('regCourse').value || "N/A",
+                level: document.getElementById('regLevel').value || "N/A",
+                year: document.getElementById('regYear').value || "N/A",
+                intake: document.getElementById('regIntake').value || "N/A",
+                subject: document.getElementById('regSubject').value || "N/A"
+            };
+            await fetch(`${SCRIPT_URL}?action=registerUser`, { method: "POST", body: JSON.stringify(data) });
+            alert("Usajili Umekamilika!");
+            switchView('loginView');
+            btn.innerText = "Kamilisha";
+        }
+
+        function handleLogin() {
+            const name = document.getElementById('logName').value.trim();
+            currentUser = all_users.find(u => u[0].toLowerCase() === name.toLowerCase());
+            if (currentUser) {
+                currentUser[2] === 'CR' ? switchView('crDashboard') : switchView('lecDashboard');
+            } else { alert("Akaunti haipo!"); }
+        }
+
+        function renderCR() {
+            document.getElementById('crCourseName').innerText = currentUser[3];
+            const lecs = all_users.filter(u => u[2] === 'Lecturer');
+            document.getElementById('lecContactsDisplay').innerHTML = lecs.map(l => `• ${l[0]} (${l[1]}) - Somo: ${l[5]}`).join('<br>');
+            const myStudents = all_students.filter(s => s[1] === currentUser[3]);
+            document.getElementById('studentListDisplay').innerHTML = myStudents.map(s => `
+            <div class="item-card" onclick="openAnalysis('${s[0]}')">
+                <span>${s[0]}</span> <small>Angalia Analytics</small>
+            </div>`).join('');
+        }
+        async function addStudent() {
+            const nameInput = document.getElementById('newStdName');
+            const name = nameInput.value.trim();
+
+            if (!name) return alert("Tafadhali andika jina la mwanafunzi!");
+
+            // Onyesha mchakato unaendelea kwenye button
+            const btn = document.querySelector("#studentManager .btn");
+            const originalText = btn.innerText;
+            btn.innerText = "Inaongeza...";
+            btn.disabled = true;
+
+            try {
+                // Tunatuma data kama POST Body (JSON)
+                await fetch(`${SCRIPT_URL}?action=addStudent`, {
+                    method: "POST",
+                    body: JSON.stringify({
+                        name: name,
+                        course: currentUser[3],
+                        crName: currentUser[0]
+                    })
+                });
+
+                nameInput.value = '';
+                alert("Mwanafunzi ameongezwa kikamilifu!");
+
+                // Hizi function ni muhimu ili list ijirefresh papo hapo
+                if (typeof fetchAllData === "function") await fetchAllData();
+                if (typeof renderCR === "function") renderCR();
+
+            } catch (e) {
+                console.error("Hitilafu:", e);
+                alert("Imeshindwa kuongeza mwanafunzi. Angalia internet yako.");
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
             }
-        }, 1000);
-    }
-    // Function ya kufungua uchambuzi wa mwanafunzi kutoka kwenye Sheets
-    async function openAnalysis(stdName) {
-        switchView('studentDetailView');
-        document.getElementById('detStdName').innerText = "Inapakia: " + stdName;
+        }
 
-        try {
-            const res = await fetch(`${SCRIPT_URL}?action=getAttendance`);
-            const allAttendance = await res.json();
+        function renderLec() {
+            document.getElementById('lecNameShow').innerText = currentUser[0];
+            const crUsers = all_users.filter(u => u[2] === 'CR');
+            const levels = [...new Set(crUsers.map(u => String(u[4]).trim()))];
+            const years = [...new Set(crUsers.map(u => String(u[6]).trim()))];
+            document.getElementById('filterLevel').innerHTML = '<option value="">Chagua Level</option>' + levels.map(l => `<option value="${l}">${l}</option>`).join('');
+            document.getElementById('filterYear').innerHTML = '<option value="">Mwaka wa Masomo</option>' + years.map(y => `<option value="${y}">${y}</option>`).join('');
+        }
 
-            // Chuja mahudhurio ya mwanafunzi huyu (Index 0 ni Jina)
-            const myAttendance = allAttendance.filter(row => row[0] === stdName);
+        async function findRelevantCRs() {
+            const btn = document.getElementById('findCRBtn');
+            const lvl = document.getElementById('filterLevel').value.trim();
+            const yr = document.getElementById('filterYear').value.trim();
+            const intk = document.getElementById('filterIntake').value.trim();
+            if (!lvl || !yr || !intk) return alert("Tafadhali jaza Level, Mwaka na Intake!");
+            btn.innerText = "Inatafuta..."; btn.disabled = true;
+            await fetchAllData();
+            const matchingCRs = all_users.filter(u => u[2] === 'CR' && String(u[4]).trim() === lvl && String(u[6]).trim() === yr && String(u[7] || "N/A").trim() === intk);
+            btn.innerText = "TAFUTA CRS"; btn.disabled = false;
+            if (matchingCRs.length === 0) {
+                document.getElementById('crListDisplay').innerHTML = "<p style='font-size:12px; color:var(--accent-red);'>Hakuna CR aliyepatikana.</p>";
+                document.getElementById('classDataDisplay').innerHTML = ""; return;
+            }
+            document.getElementById('crListDisplay').innerHTML = "<p style='font-size:12px; text-align:left;'>Gusa CR kuona wanafunzi:</p>" +
+                matchingCRs.map(u => `<div class="item-card" onclick="loadLecStudentsByCR('${u[3]}', '${u[0]}')"><span>${u[0]}</span> <small>${u[3]}</small></div>`).join('');
+        }
+
+        function loadLecStudentsByCR(course, crName) {
+            selectedCourseForLec = course;
+            const stds = all_students.filter(s => s[1] === course);
+            document.getElementById('classDataDisplay').innerHTML = `<div style="text-align:left; margin:15px 0;"><strong style="font-size:14px; color:var(--primary-blue);">Wanafunzi wa ${crName} (${course})</strong></div>` +
+                stds.map(s => {
+                    const count = all_attendance.filter(a => a[0] === s[0] && a[2] === course).length;
+                    return `<div class="item-card" onclick="openAnalysis('${s[0]}')"><span>${s[0]}</span> <small>Mahudhurio: ${count}</small></div>`;
+                }).join('');
+        }
+
+        async function openAnalysis(stdName) {
+            switchView('studentDetailView');
             document.getElementById('detStdName').innerText = stdName;
-
-            // --- SEHEMU YA 1: UCHAMBUZI WA SIKU 5 ZILIZOPITA (Pamoja na Masomo) ---
+            const myAtt = all_attendance.filter(row => row[0] === stdName);
             const last5Days = [];
             for (let i = 0; i < 5; i++) {
-                let d = new Date();
-                d.setDate(d.getDate() - i);
-                let dd = String(d.getDate()).padStart(2, '0');
-                let mm = String(d.getMonth() + 1).padStart(2, '0');
-                let yyyy = d.getFullYear();
-                last5Days.push(`${dd}/${mm}/${yyyy}`);
+                let d = new Date(); d.setDate(d.getDate() - i);
+                last5Days.push(d.toLocaleDateString('en-GB'));
             }
-
-            let fiveDayHtml = "";
-            last5Days.forEach(dateStr => {
-                // Pata vipindi vyote vya tarehe hii (Index 3 ni Tarehe)
-                const sessionsToday = myAttendance.filter(a => a[3] === dateStr);
-                const count = sessionsToday.length;
-
-                // Pata orodha ya majina ya masomo (Index 1 ni Somo)
-                // Tunatumia Set ili kuzuia kurudia somo kama mwanafunzi aliingia vipindi viwili vya somo moja
-                const subjects = [...new Set(sessionsToday.map(a => a[1]))].join(', ');
-
-                fiveDayHtml += `
-            <div class="day-stat" style="flex-direction: column; align-items: flex-start; height: auto; padding: 10px 0;">
-                <div style="display: flex; justify-content: space-between; width: 100%;">
-                    <strong style="color: #eee;">${dateStr}</strong> 
-                    <span style="color: ${count > 0 ? '#00d2ff' : '#ff4d4d'}; font-weight: bold;">
-                        ${count} Vipindi
-                    </span>
-                </div>
-                ${count > 0 ? `<small style="color: rgba(255,255,255,0.6); margin-top: 5px;">Masomo: ${subjects}</small>` : ''}
+            document.getElementById('fiveDayStat').innerHTML = last5Days.map(dateStr => {
+                const sessions = myAtt.filter(a => a[3] === dateStr);
+                return `<div class="day-stat" style="flex-direction:column; align-items:start; padding: 10px 0;">
+                <div style="display:flex; justify-content:space-between; width:100%;"><strong>${dateStr}</strong> <span>${sessions.length} Vipindi</span></div>
+                ${sessions.length > 0 ? `<small style="color:var(--primary-blue)">${[...new Set(sessions.map(a => a[1]))].join(', ')}</small>` : ''}
             </div>`;
-            });
-            document.getElementById('fiveDayStat').innerHTML = fiveDayHtml;
-
-            // --- SEHEMU YA 2: UCHAMBUZI WA KILA MWEZI ---
+            }).join('');
             const monthlyData = {};
-            myAttendance.forEach(a => {
-                const monthName = a[6]; // Column G (Index 6) ina jina la mwezi
-                if (monthName) {
-                    monthlyData[monthName] = (monthlyData[monthName] || 0) + 1;
+            myAtt.forEach(a => { if (a[6]) monthlyData[a[6]] = (monthlyData[a[6]] || 0) + 1; });
+            document.getElementById('monthlyStat').innerHTML = Object.entries(monthlyData).map(([m, t]) => `<div class="day-stat"><span>${m}</span> <strong>${t} Vipindi</strong></div>`).join('') || "No Data";
+        }
+        async function generateToken() {
+            const sub = document.getElementById('sessionSubject').value;
+            if (!sub) return alert("Weka Jina la Somo!");
+
+            const token = Math.random().toString(36).substring(2, 8).toUpperCase();
+            document.getElementById('tokenBox').innerText = token;
+
+            // Pata kozi: Kama ni CR anatumia kozi yake, kama ni Lecturer anatumia kozi ya CR aliyemchagua
+            let targetCourse = "";
+            if (currentUser[2] === 'CR') {
+                targetCourse = currentUser[3];
+            } else {
+                // Hapa inachukua kozi ya CR aliyeguswa (selectedCourseForLec tuliyoiweka awali)
+                targetCourse = selectedCourseForLec;
+            }
+
+            if (!targetCourse) return alert("Tafadhali chagua darasa kwanza!");
+
+            const payload = {
+                token: token,
+                subject: sub,
+                lecturer: currentUser[0], // Jina la aliyelog-in
+                course: targetCourse,
+                expiresIn: 180 // Sekunde 180 (Dakika 3)
+            };
+
+            try {
+                await fetch(`${SCRIPT_URL}?action=setActiveToken`, {
+                    method: "POST",
+                    body: JSON.stringify(payload)
+                });
+                console.log("Data imetumwa kikamilifu!");
+            } catch (e) {
+                console.error("Hitilafu imetokea:", e);
+            }
+
+            // --- Sehemu ya Timer (Baki kama ilivyo kwenye kodi yako ya sasa) ---
+            let time = 180;
+            if (window.activeTimer) clearInterval(window.activeTimer);
+            window.activeTimer = setInterval(() => {
+                time--;
+                let min = Math.floor(time / 60);
+                let sec = time % 60;
+                document.getElementById('timer').innerText = `Muda: ${min}:${sec < 10 ? '0' : ''}${sec}`;
+                if (time <= 0) {
+                    clearInterval(window.activeTimer);
+                    document.getElementById('tokenBox').innerText = "EXP";
+                }
+            }, 1000);
+        }
+
+        function logout() { currentUser = null; switchView('landingView'); }
+
+        let currentLang = localStorage.getItem('appLang') || 'sw';
+        const translations = {
+            'sw': { 'landingTitle': 'IAA Smart Attendance Portal', 'landingReg': 'Tengeneza Akaunti', 'landingLog': 'Ingia', 'regHeader': 'Jisajili', 'backBtn': 'Rudi', 'loginHeader': 'Ingia', 'loginBtnTxt': 'Ingia Sasa', 'crPanel': 'CR Panel:', 'addStd': 'Ongeza Mwanafunzi', 'genToken': 'Tengeneza Kodi', 'logout': 'Logout', 'last5': 'Siku 5 Zilizopita:', 'monthly': 'Mwezi:', 'lecDash': 'Mhadhiri Dashboard', 'genAtt': 'Attendance Control', 'timer': 'Muda: 3:00', 'startAtt': 'Anza Mahudhurio', 'langBtn': 'English 🌐', 'phName': 'Majina Matatu', 'phPhone': 'Namba ya Simu', 'phCourse': 'Kozi', 'phLevel': 'Level', 'phYear': 'Mwaka', 'phSubj': 'Somo Lako', 'phFull': 'Jina Kamili', 'phStd': 'Mwanafunzi', 'phSomo': 'Jina la Somo' },
+            'en': { 'landingTitle': 'IAA Smart Attendance Portal', 'landingReg': 'Create Account', 'landingLog': 'Login', 'regHeader': 'Register', 'backBtn': 'Back', 'loginHeader': 'Login', 'loginBtnTxt': 'Login Now', 'crPanel': 'CR Panel:', 'addStd': 'Add Student', 'genToken': 'Generate Code', 'logout': 'Logout', 'last5': 'Past 5 Days:', 'monthly': 'Monthly:', 'lecDash': 'Lecturer Dashboard', 'genAtt': 'Attendance Control', 'timer': 'Time: 3:00', 'startAtt': 'Start Attendance', 'langBtn': 'Kiswahili 🌐', 'phName': 'Three Full Names', 'phPhone': 'Phone Number', 'phCourse': 'Course', 'phLevel': 'Level', 'phYear': 'Year', 'phSubj': 'Your Subject', 'phFull': 'Full Name', 'phStd': 'Student Name', 'phSomo': 'Subject Name' }
+        };
+
+        function toggleLanguage() { currentLang = currentLang === 'sw' ? 'en' : 'sw'; localStorage.setItem('appLang', currentLang); updateUI(); }
+        function updateUI() {
+            document.querySelectorAll('[data-key]').forEach(elem => {
+                const key = elem.getAttribute('data-key');
+                if (translations[currentLang][key]) {
+                    elem.tagName === 'INPUT' ? elem.placeholder = translations[currentLang][key] : elem.innerText = translations[currentLang][key];
                 }
             });
-
-            let monthlyHtml = "";
-            if (Object.keys(monthlyData).length === 0) {
-                monthlyHtml = "<div class='day-stat'>Bado hajarekodiwa mwezi wowote</div>";
-            } else {
-                for (const [month, total] of Object.entries(monthlyData)) {
-                    monthlyHtml += `
-                <div class="day-stat">
-                    <span>${month}</span> 
-                    <strong style="color:#00d2ff">${total} Vipindi</strong>
-                </div>`;
-                }
-            }
-            document.getElementById('monthlyStat').innerHTML = monthlyHtml;
-
-        } catch (e) {
-            console.error("Error fetching analysis:", e);
-            document.getElementById('detStdName').innerText = "Hitilafu kupakia data!";
+            document.getElementById('langBtn').innerText = translations[currentLang]['langBtn'];
         }
-    }
-    let currentLang = localStorage.getItem('appLang') || 'sw';
-
-    const translations = {
-        'sw': {
-            'landingTitle': 'IAA Smart Attendance Portal',
-            'landingReg': 'Tengeneza Akaunti',
-            'landingLog': 'Ingia',
-            'regHeader': 'Jisajili',
-            'regBtnTxt': 'Kamilisha',
-            'backBtn': 'Rudi',
-            'loginHeader': 'Ingia',
-            'loginBtnTxt': 'Ingia Sasa',
-            'lecList': 'Ma-Lecturer Waliopo:',
-            'crPanel': 'CR Panel:',
-            'addStd': 'Ongeza Mwanafunzi',
-            'genToken': 'Tengeneza Kodi (Dakika 1)',
-            'logout': 'Logout',
-            'last5': 'Vipindi Siku 5 Zilizopita:',
-            'monthly': 'Muhtasari wa Mwezi:',
-            'lecDash': 'Mhadhiri Dashboard',
-            'genAtt': 'Attendance Control',
-            'timer': 'Muda: 60s',
-            'startAtt': 'Anza Mahudhurio',
-            'close': 'Funga',
-            'langBtn': 'English 🌐',
-            // Placeholders
-            'phName': 'Majina Matatu',
-            'phPhone': 'Namba ya Simu',
-            'phCourse': 'Kozi (mf. IT Diploma)',
-            'phLevel': 'Level (mf. NTA 5)',
-            'phYear': 'Mwaka (mf. 2025/26)',
-            'phSubj': 'Somo Lako Kuu',
-            'phFull': 'Jina Lako Kamili',
-            'phStd': 'Jina la Mwanafunzi',
-            'phSomo': 'Jina la Somo'
-        },
-        'en': {
-            'landingTitle': 'IAA Smart Attendance Portal',
-            'landingReg': 'Create Account',
-            'landingLog': 'Login',
-            'regHeader': 'Register',
-            'regBtnTxt': 'Complete',
-            'backBtn': 'Back',
-            'loginHeader': 'Login',
-            'loginBtnTxt': 'Login Now',
-            'lecList': 'Available Lecturers:',
-            'crPanel': 'CR Panel:',
-            'addStd': 'Add Student',
-            'genToken': 'Generate Token (1 Min)',
-            'logout': 'Logout',
-            'last5': 'Past 5 Days Attendance:',
-            'monthly': 'Monthly Summary:',
-            'lecDash': 'Lecturer Dashboard',
-            'genAtt': 'Attendance Control',
-            'timer': 'Time: 60s',
-            'startAtt': 'Start Session',
-            'close': 'Close',
-            'langBtn': 'Kiswahili 🌐',
-            // Placeholders
-            'phName': 'Three Full Names',
-            'phPhone': 'Phone Number',
-            'phCourse': 'Course (e.g. IT Diploma)',
-            'phLevel': 'Level (e.g. NTA 5)',
-            'phYear': 'Year (e.g. 2025/26)',
-            'phSubj': 'Your Major Subject',
-            'phFull': 'Your Full Name',
-            'phStd': 'Student Name',
-            'phSomo': 'Subject Name'
-        }
-    };
-
-    function toggleLanguage() {
-        currentLang = currentLang === 'sw' ? 'en' : 'sw';
-        localStorage.setItem('appLang', currentLang);
-        updateUI();
-    }
-    function toggleLanguage() {
-        currentLang = currentLang === 'sw' ? 'en' : 'sw';
-        localStorage.setItem('appLang', currentLang);
-        updateUI();
-    }
-
-    function updateUI() {
-        document.querySelectorAll('[data-key]').forEach(elem => {
-            const key = elem.getAttribute('data-key');
-            if (translations[currentLang][key]) {
-                // Kama ni INPUT, badilisha placeholder
-                if (elem.tagName === 'INPUT') {
-                    elem.placeholder = translations[currentLang][key];
-                } else {
-                    // Kama ni tag nyingine (h2, button, etc), badilisha maandishi
-                    elem.innerText = translations[currentLang][key];
-                }
-            }
-        });
-        // Badilisha neno kwenye button ya lugha
-        document.getElementById('langBtn').innerText = translations[currentLang]['langBtn'];
-    }
-
-    // Hakikisha updateUI inaitwa ukurasa ukifunguliwa
-    window.addEventListener('DOMContentLoaded', updateUI);
-    function switchView(id) {
-        document.querySelectorAll('.container > div').forEach(v => {
-            // Hii inahakikisha hatufichi container nzima wala lang-container
-            if (v.id) v.classList.add('hidden');
-        });
-
-        document.getElementById(id).classList.remove('hidden');
-
-        // Pakia data na kisha HAKIKISHA lugha inakaa sawa
-        fetchAllData().then(() => {
-            if (id === 'crDashboard') renderCR();
-            if (id === 'lecDashboard') renderLec();
-
-            updateUI(); // <--- ONGEZA HUU MSTARI HAPA (Muhimu!)
-        });
-    }
-</script>
+        window.addEventListener('DOMContentLoaded', updateUI);
+    </script>
 </body>
 
 </html>
